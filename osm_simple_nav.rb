@@ -1,5 +1,6 @@
-require_relative 'lib/graph_loader';
-require_relative 'process_logger';
+require_relative 'lib/graph_loader'
+require_relative 'process_logger'
+require 'ruby-graphviz'
 
 # Class representing simple navigation based on OpenStreetMap project
 class OSMSimpleNav
@@ -88,8 +89,73 @@ class OSMSimpleNav
 	# Run navigation according to arguments from command line
 	def run
 		# prepare log and read command line arguments
+		@highway_attributes = %w[residential motorway trunk primary secondary tertiary unclassified]
+		doc = Nokogiri::XML(File.open("data/near_ucl.osm"))
+		g = GraphViz.new(:G, :type => :digraph)
+		#p doc
+		a = 0
+		# doc.root.xpath("node").each do |node|
+		# 	g.add_nodes(node.attr("id"))
+		# 	#puts node.attr("id")
+		# end
+		# doc.root.xpath("way").each do |way|
+		# 	#p way
+		# 	way.xpath("tag").each do |tag|
+		# 		if tag.attr("k") == "highway" && tag.attr("v") == "residential"
+		# 			p tag
+		# 		end
+		# 	end
+		# 	i = 1
+		# 	way.xpath("nd").each do |nn|
+		# 		puts "node #{i}"
+		# 		p nn.attr("ref")
+		# 		i = i + 1
+		# 	end
+		# end
+		# doc.root.xpath("way/nd").each do |nd|
+		# 	#p nd.attr("ref")
+		# end
+		# TODO
+		doc.root.xpath("way").each do |way|
+			array = []
+			way.xpath("tag").each do |tag|
+				if tag.attr("k") == "highway" && tag.attr("v") == "residential"
+					way.xpath("nd").each do |nd|
+						array << nd.attr("ref")
+					end
+				end
+			end
+			array.combination(2) { |c|
+				if g.get_node(c[0]) == nil
+					a = g.add_nodes(c[0])
+				else
+					a = g.get_node(c[0])
+				end
+				if g.get_node(c[1]) == nil
+					b = g.add_nodes(c[1])
+				else
+					b = g.get_node(c[1])
+				end
+				g.add_edges(a, b, :dir => "none")
+			}
+		end
+
+		#p g.node_count
+		puts "node"
+		#p g.get_node_at_index(1)
+		#p g.get_node("1131753366")
+
+
+		#g.add_edges(g.get_node_at_index(0), g.get_node_at_index(1), :dir => "none")
+		#p g.get_edge_at_index(9)
+
+		g.output( :jpg => "new4.jpg")
+		
 		prepare_log
 	    process_args
+
+		doc = Nokogiri::XML(File.open("data/near_ucl.osm"))
+		p doc
 
 	    # load graph - action depends on last suffix
 	    #@highway_attributes = ['residential', 'motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'unclassified']

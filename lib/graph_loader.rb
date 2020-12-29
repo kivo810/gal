@@ -78,5 +78,6 @@ class GraphLoader
 	# @return [+Graph+, +VisualGraph+]
 	def load_graph()
 		# TODO
+
 	end
 end
