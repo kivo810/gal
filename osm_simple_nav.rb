@@ -119,7 +119,8 @@ class OSMSimpleNav
 		doc.root.xpath("way").each do |way|
 			array = []
 			way.xpath("tag").each do |tag|
-				if tag.attr("k") == "highway" && tag.attr("v") == "residential"
+				#if tag.attr("k") == "highway" && tag.attr("v") == "residential"
+				if tag.attr("k") == "highway" && @highway_attributes.include?(tag.attr("v"))
 					way.xpath("nd").each do |nd|
 						array << nd.attr("ref")
 					end
@@ -128,14 +129,18 @@ class OSMSimpleNav
 			array.combination(2) { |c|
 				if g.get_node(c[0]) == nil
 					a = g.add_nodes(c[0])
+					#a = g.add_nodes(Vertex.new(c[0]))
 				else
 					a = g.get_node(c[0])
 				end
 				if g.get_node(c[1]) == nil
 					b = g.add_nodes(c[1])
+					#b = g.add_nodes(Vertex.new(c[1]))
 				else
 					b = g.get_node(c[1])
 				end
+				#r = Edge.new(a,b, 50, "none")
+				g.add_edge(a,b, :dir => "none")
 				g.add_edges(a, b, :dir => "none")
 			}
 		end
@@ -149,7 +154,7 @@ class OSMSimpleNav
 		#g.add_edges(g.get_node_at_index(0), g.get_node_at_index(1), :dir => "none")
 		#p g.get_edge_at_index(9)
 
-		g.output( :jpg => "new4.jpg")
+		g.output( :jpg => "totaled.jpg")
 		
 		prepare_log
 	    process_args
