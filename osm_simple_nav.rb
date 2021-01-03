@@ -97,16 +97,34 @@ class OSMSimpleNav
 	#UC05
 	def emphasize_special_vertices_id (id1, id2)
 		p @graph
+		vertex1_lat = 0
+		vertex1_lon = 0
+		vertex2_lat = 0
+		vertex2_lon = 0
 		@visual_graph.visual_vertices.each do |index, value|
-			if id1 == index
-				vertex1_lat = value.lat
-				vertex1_lon = value.lon
-			elsif id2 == index
-				vertex2_lat = value.lat
-				vertex2_lon = value.lon
+			if id1.to_s == index
+				vertex1_lat = value.lat.to_f
+				vertex1_lon = value.lon.to_f
+			elsif id2.to_s == index
+				vertex2_lat = value.lat.to_f
+				vertex2_lon = value.lon.to_f
 			end
 		end
+		if vertex2_lat > vertex1_lat
+			a = vertex1_lat
+			vertex1_lat = vertex2_lat
+			vertex2_lat = a
+		end
+		if vertex2_lon > vertex1_lon
+			a = vertex1_lon
+			vertex1_lon = vertex2_lon
+			vertex2_lon = a
+		end
+		@visual_graph.visual_vertices.each do |index, value|
+			if (value.lat.to_f).between?(vertex2_lat, vertex1_lat) && (value.lon.to_f).between?(vertex2_lon,vertex1_lon)
 
+			end
+		end
 	end
 
 	def emphasize_special_vertices_geo
@@ -219,7 +237,7 @@ class OSMSimpleNav
 				#load_graph(true)
 				biggest_comp(false)
 				print_all_vertices
-				emphasize_special_vertices_id(0,0)
+				emphasize_special_vertices_id(21311325,29382252)
 				#exit 1
 	    elsif file_type(@map_file) == "dot" or file_type(@map_file) == "gv" then
 	    	import_graph

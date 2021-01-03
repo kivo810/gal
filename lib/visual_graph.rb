@@ -39,7 +39,7 @@ class VisualGraph
 
     # append all vertices
     @visual_vertices.each { |k,v|
-    	graph_viz_output.add_nodes( v.id , :shape => 'point', 
+    	graph_viz_output.add_nodes( v.id , :shape => 'point', :color => "red",
                                          :comment => "#{v.lat},#{v.lon}!", 
                                          :pos => "#{v.y},#{v.x}!")
 	  }
