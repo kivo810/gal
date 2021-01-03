@@ -83,12 +83,22 @@ class GraphLoader
 		ProcessLogger.log("Starting processing graph from OSM #{@filename}")
 		osm_file = File.open(@filename)
 		osm_doc = Nokogiri::XML(osm_file)
-		
+
+		attributes_for_graph = get_attributes_for_graph(osm_doc, directed)
+
+		graph = Graph.new(attributes_for_graph[:hash_of_vertices], attributes_for_graph[:list_of_edges])
+		visual_graph = VisualGraph.new(graph, attributes_for_graph[:hash_of_visual_vertices],
+																	 attributes_for_graph[:list_of_visual_edges], attributes_for_graph[:bounds], directed)
+
+		return graph, visual_graph
+	end
+
+	def get_attributes_for_graph (osm_doc, directed)
 		hash_of_vertices = {}
 		hash_of_visual_vertices = {}
 		list_of_edges = []
 		list_of_visual_edges = []
-		
+
 		boundaries = osm_doc.xpath('osm/bounds').first
 		bounds = {
 			:minlon => boundaries[:minlon],
@@ -96,7 +106,7 @@ class GraphLoader
 			:minlat => boundaries[:minlat],
 			:maxlat => boundaries[:maxlat]
 		}
-		
+
 		ProcessLogger.log("Start of processing vertices")
 		osm_doc.root.xpath("way").each do |way|
 			way.xpath("tag").each do |tag|
@@ -105,7 +115,7 @@ class GraphLoader
 					way.xpath("nd").each do |node|
 						vortex_id = node.attr("ref")
 						vertices_ids << vortex_id
-						
+
 						unless hash_of_vertices.has_key?(vortex_id)
 							hash_of_vertices[vortex_id] = Vertex.new(vortex_id)
 							vortex = osm_doc.xpath('osm/node[@id="' + vortex_id + '"]').first
@@ -113,20 +123,20 @@ class GraphLoader
 																																		vortex[:lat], vortex[:lon],vortex[:lat], vortex[:lon])
 						end
 					end
-					
+
 					(vertices_ids.count - 1).times do |i|
 						vertex1 = hash_of_visual_vertices[vertices_ids[i]]
 						vertex2 = hash_of_visual_vertices[vertices_ids[i + 1]]
 						max_speed = way.xpath('tag[@k="maxspeed"]').first
 						max_speed ? max_speed[:v] : 50
-						
+
 						is_one_way = way.xpath('tag[@k="oneway"]').first
 						is_one_way ? true : false
 						dist = Geocoder::Calculations.distance_between([vertex1.lat, vertex1.lon], [vertex2.lat, vertex2.lon], :units => :km)
 
 						list_of_edges << Edge.new(vertex1.id, vertex2.id, max_speed, is_one_way, dist)
 						#p list_of_edges
-						
+
 						if directed
 							last_edge = list_of_edges.last
 							unless last_edge.one_way
@@ -137,20 +147,114 @@ class GraphLoader
 				end
 			end
 		end
-		
+
 		list_of_edges.each do |edge|
 			list_of_visual_edges << VisualEdge.new(edge, hash_of_visual_vertices[edge.v1], hash_of_visual_vertices[edge.v2])
 		end
 
+		{
+			:hash_of_vertices => hash_of_vertices,
+			:hash_of_visual_vertices => hash_of_visual_vertices,
+			:list_of_edges => list_of_edges,
+			:list_of_visual_edges => list_of_visual_edges,
+			:bounds => bounds
+		}
+	end
+
+	#UC03
+	def biggest_comp(directed)
+		osm_file = File.open(@filename)
+		osm_doc = Nokogiri::XML(osm_file)
+
+		attr_for_graph = get_attributes_for_graph(osm_doc, directed)
+
+		edges = attr_for_graph[:list_of_edges]
+
+		#p edges
+
+		visited = []
+		groups = []
+		adjacencylist = {}
+		edges.each do |edge|
+			#p edge
+			unless adjacencylist.has_key?(edge.v1)
+				adjacencylist[edge.v1] = []
+			end
+			unless adjacencylist.has_key?(edge.v2)
+				adjacencylist[edge.v2] = []
+			end
+			if directed
+				unless edge.one_way.nil?
+					adjacencylist[edge.v1] << edge.v2
+					adjacencylist[edge.v2] << edge.v1
+				else
+					adjacencylist[edge.v1] << edge.v2
+				end
+			else
+				adjacencylist[edge.v1] << edge.v2
+				adjacencylist[edge.v2] << edge.v1
+			end
+		end
+		adjacencylist.each do |k,v|
+			if adjacencylist.has_key?(k) && !visited[k.to_i]
+				groups << bfs(k, adjacencylist, visited)
+			end
+		end
+
+		biggest_component_vertices = groups.max_by{|group| group.length}
+		p biggest_component_vertices
+
+		hash_of_vertices = {}
+		hash_of_visual_vertices = {}
+		biggest_component_vertices.each do |vertex_id|
+			hash_of_vertices[vertex_id] = attr_for_graph[:hash_of_vertices][vertex_id]
+			hash_of_visual_vertices[vertex_id] = attr_for_graph[:hash_of_visual_vertices][vertex_id]
+		end
+		list_of_edges = attr_for_graph[:list_of_edges].filter { |edge| hash_of_vertices[edge.v1]}
+		list_of_visual_edge = attr_for_graph[:list_of_visual_edges].filter {|edge| hash_of_vertices[edge.v1.id]}
+
 		graph = Graph.new(hash_of_vertices, list_of_edges)
-		visual_graph = VisualGraph.new(graph, hash_of_visual_vertices, list_of_visual_edges, bounds, directed)
+		visual_graph = VisualGraph.new(graph, hash_of_visual_vertices, list_of_visual_edge, attr_for_graph[:bounds], directed)
 
 		return graph, visual_graph
 	end
 
-	def biggest_comp
-		graph, visual_graph = load_graph(true)
+	def bfs(node, adj_list, visited)
+		# Remember, in the breadth first search we always
+		# use a queue. In ruby we can represent both
+		# queues and stacks as an Array, just by using
+		# the correct methods to deal with it. In this case,
+		# we use the "shift" method to remove an element
+		# from the beginning of the Array.
 
+		# First step: Put the source node into a queue and mark it as visited
+		queue = []
+		queue << node
+		visited << node
+		edge_to = {}
+		groups = []
+		printed = []
+
+		# Second step: Repeat until the queue is empty:
+		# - Remove the least recently added node n
+		# - add each of n's unvisited adjacents to the queue and mark them as visited
+		while queue.any?
+			current_node = queue.shift # remove first element
+			printed << current_node
+			adj_list[current_node].each do |adjacent_node|
+				#current_node.adjacents.each do |adjacent_node|
+				next if visited.include?(adjacent_node)
+				queue << adjacent_node
+				visited << adjacent_node
+				edge_to[adjacent_node] = current_node
+			end
+		end
+		return printed
 	end
 
+	# If we visited the node, so there is a path
+	# from our source node to it.
+	def has_path_to?(node)
+		@visited.include?(node)
+	end
 end

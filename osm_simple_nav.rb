@@ -82,6 +82,11 @@ class OSMSimpleNav
 		@graph, @visual_graph = graph_loader.load_graph(directed)
 	end
 
+	def biggest_comp(directed)
+		graph_loader = GraphLoader.new(@map_file, @highway_attributes)
+		@graph, @visual_graph = graph_loader.biggest_comp(directed)
+	end
+
 	# Load graph from Graphviz file. This methods loads graph and create +Graph+ as well as +VisualGraph+ instances.
 	def import_graph
 		graph_loader = GraphLoader.new(@map_file, @highway_attributes)
@@ -185,7 +190,8 @@ class OSMSimpleNav
 	    if file_type(@map_file) == "osm" or file_type(@map_file) == "xml" then
 	    	puts "OSM not supported!"
 	    	usage
-				load_graph(false)
+				#load_graph(true)
+				biggest_comp(true)
 				#exit 1
 	    elsif file_type(@map_file) == "dot" or file_type(@map_file) == "gv" then
 	    	import_graph
