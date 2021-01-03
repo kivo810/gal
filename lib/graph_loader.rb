@@ -3,6 +3,8 @@ require 'nokogiri'
 require_relative 'graph'
 require_relative 'visual_graph'
 
+require 'geocoder'
+
 # Class to load graph from various formats. Actually implemented is Graphviz formats. Future is OSM format.
 class GraphLoader
 	attr_reader :highway_attributes
@@ -76,8 +78,79 @@ class GraphLoader
 	# Method to load graph from OSM file and create +Graph+ and +VisualGraph+ instances from +self.filename+
 	#
 	# @return [+Graph+, +VisualGraph+]
-	def load_graph()
-		# TODO
+	# UC01, UC02 --> must be given directness
+	def load_graph(directed)
+		ProcessLogger.log("Starting processing graph from OSM #{@filename}")
+		osm_file = File.open(@filename)
+		osm_doc = Nokogiri::XML(osm_file)
+		
+		hash_of_vertices = {}
+		hash_of_visual_vertices = {}
+		list_of_edges = []
+		list_of_visual_edges = []
+		
+		boundaries = osm_doc.xpath('osm/bounds').first
+		bounds = {
+			:minlon => boundaries[:minlon],
+			:maxlon => boundaries[:maxlon],
+			:minlat => boundaries[:minlat],
+			:maxlat => boundaries[:maxlat]
+		}
+		
+		ProcessLogger.log("Start of processing vertices")
+		osm_doc.root.xpath("way").each do |way|
+			way.xpath("tag").each do |tag|
+				if tag.attr("k") == "highway" && @highway_attributes.include?(tag.attr("v"))
+					vertices_ids = []
+					way.xpath("nd").each do |node|
+						vortex_id = node.attr("ref")
+						vertices_ids << vortex_id
+						
+						unless hash_of_vertices.has_key?(vortex_id)
+							hash_of_vertices[vortex_id] = Vertex.new(vortex_id)
+							vortex = osm_doc.xpath('osm/node[@id="' + vortex_id + '"]').first
+							hash_of_visual_vertices[vortex_id] = VisualVertex.new(vortex_id, hash_of_vertices[vortex_id],
+																																		vortex[:lat], vortex[:lon],vortex[:lat], vortex[:lon])
+						end
+					end
+					
+					(vertices_ids.count - 1).times do |i|
+						vertex1 = hash_of_visual_vertices[vertices_ids[i]]
+						vertex2 = hash_of_visual_vertices[vertices_ids[i + 1]]
+						max_speed = way.xpath('tag[@k="maxspeed"]').first
+						max_speed ? max_speed[:v] : 50
+						
+						is_one_way = way.xpath('tag[@k="oneway"]').first
+						is_one_way ? true : false
+						dist = Geocoder::Calculations.distance_between([vertex1.lat, vertex1.lon], [vertex2.lat, vertex2.lon], :units => :km)
+
+						list_of_edges << Edge.new(vertex1.id, vertex2.id, max_speed, is_one_way, dist)
+						#p list_of_edges
+						
+						if directed
+							last_edge = list_of_edges.last
+							unless last_edge.one_way
+								list_of_edges << Edge.new(vertex2.id, vertex1.id, max_speed, is_one_way, dist)
+							end
+						end
+					end
+				end
+			end
+		end
+		
+		list_of_edges.each do |edge|
+			list_of_visual_edges << VisualEdge.new(edge, hash_of_visual_vertices[edge.v1], hash_of_visual_vertices[edge.v2])
+		end
+
+		graph = Graph.new(hash_of_vertices, list_of_edges)
+		visual_graph = VisualGraph.new(graph, hash_of_visual_vertices, list_of_visual_edges, bounds, directed)
+
+		return graph, visual_graph
+	end
+
+	def biggest_comp
+		graph, visual_graph = load_graph(true)
 
 	end
+
 end

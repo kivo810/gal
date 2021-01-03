@@ -2,6 +2,8 @@ require_relative 'lib/graph_loader'
 require_relative 'process_logger'
 require 'ruby-graphviz'
 
+require 'geocoder'
+
 # Class representing simple navigation based on OpenStreetMap project
 class OSMSimpleNav
 
@@ -75,9 +77,9 @@ class OSMSimpleNav
 	end
 
 	# Load graph from OSM file. This methods loads graph and create +Graph+ as well as +VisualGraph+ instances.
-	def load_graph
+	def load_graph(directed)
 		graph_loader = GraphLoader.new(@map_file, @highway_attributes)
-		@graph, @visual_graph = graph_loader.load_graph()
+		@graph, @visual_graph = graph_loader.load_graph(directed)
 	end
 
 	# Load graph from Graphviz file. This methods loads graph and create +Graph+ as well as +VisualGraph+ instances.
@@ -89,103 +91,118 @@ class OSMSimpleNav
 	# Run navigation according to arguments from command line
 	def run
 		# prepare log and read command line arguments
-		@highway_attributes = %w[residential motorway trunk primary secondary tertiary unclassified]
-		doc = Nokogiri::XML(File.open("data/near_ucl.osm"))
-		g = GraphViz.new(:G, :type => :digraph)
-		#p doc
-		a = 0
-		# doc.root.xpath("node").each do |node|
-		# 	g.add_nodes(node.attr("id"))
-		# 	#puts node.attr("id")
-		# end
+		# @highway_attributes = %w[residential motorway trunk primary secondary tertiary unclassified]
+		# doc = Nokogiri::XML(File.open("data/near_ucl.osm"))
+		# g = GraphViz.new(:G, :type => :graph)
+		# #p doc
+		# xx = 0
+		# # doc.root.xpath("node").each do |node|
+		# # 	g.add_nodes(node.attr("id"))
+		# # 	#puts node.attr("id")
+		# # end
+		# # doc.root.xpath("way").each do |way|
+		# # 	#p way
+		# # 	way.xpath("tag").each do |tag|
+		# # 		if tag.attr("k") == "highway" && tag.attr("v") == "residential"
+		# # 			p tag
+		# # 		end
+		# # 	end
+		# # 	i = 1
+		# # 	way.xpath("nd").each do |nn|
+		# # 		puts "node #{i}"
+		# # 		p nn.attr("ref")
+		# # 		i = i + 1
+		# # 	end
+		# # end
+		# # doc.root.xpath("way/nd").each do |nd|
+		# # 	#p nd.attr("ref")
+		# # end
+		# # TODO
 		# doc.root.xpath("way").each do |way|
-		# 	#p way
+		# 	array = []
 		# 	way.xpath("tag").each do |tag|
 		# 		if tag.attr("k") == "highway" && tag.attr("v") == "residential"
-		# 			p tag
+		# 		#if tag.attr("k") == "highway" && @highway_attributes.include?(tag.attr("v"))
+		# 			way.xpath("nd").each do |nd|
+		# 				array << nd.attr("ref")
+		# 			end
 		# 		end
 		# 	end
-		# 	i = 1
-		# 	way.xpath("nd").each do |nn|
-		# 		puts "node #{i}"
-		# 		p nn.attr("ref")
-		# 		i = i + 1
-		# 	end
+		# 	array.combination(2) { |c|
+		# 		if g.get_node(c[0]) == nil
+		# 			a = g.add_nodes(c[0])
+		# 			#e = g.add_nodes(Vertex.new(c[0]))
+		# 		else
+		# 			a = g.get_node(c[0])
+		# 			#e = g.get_node(c[0])
+		# 		end
+		# 		if g.get_node(c[1]) == nil
+		# 			b = g.add_nodes(c[1])
+		# 			#d = g.add_nodes(Vertex.new(c[1]))
+		# 		else
+		# 			b = g.get_node(c[1])
+		# 			#d = g.get_node(c[1])
+		# 		end
+		# 		#r = Edge.new(a,b, 50, "none")
+		# 		# g.add_edge(a,b, :dir => "none")
+		# 		# g.add_edges(a, b, :dir => "none")
+		# 		#g.add_edge(a,b)
+		# 		if xx % 2 == 0
+		# 			g.add_edges(a,b, :color => "red")
+		# 			xx = xx + 1
+		# 		else
+		# 			g.add_edges(a,b)
+		# 			xx = xx + 1
+		# 		end
+		#
+		# 	}
 		# end
-		# doc.root.xpath("way/nd").each do |nd|
-		# 	#p nd.attr("ref")
-		# end
-		# TODO
-		doc.root.xpath("way").each do |way|
-			array = []
-			way.xpath("tag").each do |tag|
-				#if tag.attr("k") == "highway" && tag.attr("v") == "residential"
-				if tag.attr("k") == "highway" && @highway_attributes.include?(tag.attr("v"))
-					way.xpath("nd").each do |nd|
-						array << nd.attr("ref")
-					end
-				end
-			end
-			array.combination(2) { |c|
-				if g.get_node(c[0]) == nil
-					a = g.add_nodes(c[0])
-					#a = g.add_nodes(Vertex.new(c[0]))
-				else
-					a = g.get_node(c[0])
-				end
-				if g.get_node(c[1]) == nil
-					b = g.add_nodes(c[1])
-					#b = g.add_nodes(Vertex.new(c[1]))
-				else
-					b = g.get_node(c[1])
-				end
-				#r = Edge.new(a,b, 50, "none")
-				g.add_edge(a,b, :dir => "none")
-				g.add_edges(a, b, :dir => "none")
-			}
-		end
+		#
+		# t = GraphViz::Theory.new( g )
+		#
+		# pp = OsmHelper.load_graph_attributes(doc, @highway_attributes, false)
+		#
+		# #p g.node_count
+		# puts "node"
+		# #p g.get_node_at_index(1)
+		# #p g.get_node("1131753366")
+		# dist = Geocoder::Calculations.distance_between([50.0894509, 14.4588129], [50.0893950, 14.4589538], :units => :km)
+		# p dist
+		#
+		# p t.range
+		#
+		#
+		# #g.add_edges(g.get_node_at_index(0), g.get_node_at_index(1), :dir => "none")
+		# #p g.get_edge_at_index(9)
 
-		#p g.node_count
-		puts "node"
-		#p g.get_node_at_index(1)
-		#p g.get_node("1131753366")
-
-
-		#g.add_edges(g.get_node_at_index(0), g.get_node_at_index(1), :dir => "none")
-		#p g.get_edge_at_index(9)
-
-		g.output( :jpg => "totaled.jpg")
+		#g.output( :png => "graph.png")
 		
 		prepare_log
 	    process_args
 
-		doc = Nokogiri::XML(File.open("data/near_ucl.osm"))
-		p doc
-
 	    # load graph - action depends on last suffix
-	    #@highway_attributes = ['residential', 'motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'unclassified']
 	    @highway_attributes = ['residential', 'motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'unclassified']
-	    #@highway_attributes = ['residential']
 	    if file_type(@map_file) == "osm" or file_type(@map_file) == "xml" then
 	    	puts "OSM not supported!"
 	    	usage
-	    	exit 1
-	    	# load_graph
+				load_graph(false)
+				#exit 1
 	    elsif file_type(@map_file) == "dot" or file_type(@map_file) == "gv" then
 	    	import_graph
 	    else
 	    	puts "Imput file type not recognized!"
 	    	usage
-	    end
-		
+			end
+
 		# perform the operation
 	    case @operation
-	      when '--export'
-	      	@visual_graph.export_graphviz(@out_file)
-	      	return
-	      else
-	        usage
-	        exit 1
+			when '--export'
+				puts "im here"
+				@visual_graph.export_graphviz(@out_file)
+				return
+			else
+				usage
+				exit 1
 	    end	
 	end	
 end

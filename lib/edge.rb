@@ -8,13 +8,16 @@ class Edge
   attr_reader :max_speed
   # Indicator of on direction edge - i.e. can be passed only from +v1+ to +v2+
   attr_reader :one_way
+  #Distance between vertexes
+  attr_reader :distance
 
   # create instance of +self+ by simple storing of all parameters
-  def initialize(v1, v2, max_speed, one_way)
+  def initialize(v1, v2, max_speed, one_way, distance)
     @v1 = v1
     @v2 = v2
     @max_speed = max_speed
     @one_way = one_way
+    @distance = distance
   end
 end
 
