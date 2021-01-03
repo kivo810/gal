@@ -127,8 +127,13 @@ class OSMSimpleNav
 		end
 	end
 
-	def emphasize_special_vertices_geo
+	#UC05
+	def emphasize_special_ (geo_start_lat, geo_start_lon, geo_end_lat, geo_end_lon)
+		@visual_graph.visual_vertices.each do |index, value|
+			if (value.lat.to_f).between?(geo_start_lat, geo_end_lat) && (value.lon.to_f).between?(geo_start_lon,geo_end_lon)
 
+			end
+		end
 	end
 
 	# Load graph from Graphviz file. This methods loads graph and create +Graph+ as well as +VisualGraph+ instances.

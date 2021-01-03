@@ -13,7 +13,6 @@ class VisualVertex
   # Y-axis position of +self+
   attr_reader :y
 
-
   # create instance of +self+ by simple storing of all parameters
   def initialize(id, vertex, lat, lon, x, y)
     @id = id

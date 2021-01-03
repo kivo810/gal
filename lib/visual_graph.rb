@@ -12,17 +12,14 @@ class VisualGraph
   attr_reader :graph
   # Scale for printing to output needed for GraphViz
   attr_reader :scale
-  # Dir or undir graph - boolean
-  attr_reader :directed
 
   # Create instance of +self+ by simple storing of all given parameters.
-  def initialize(graph, visual_vertices, visual_edges, bounds, directed)
+  def initialize(graph, visual_vertices, visual_edges, bounds)
   	@graph = graph
     @visual_vertices = visual_vertices
     @visual_edges = visual_edges
     @bounds = bounds
     @scale = ([bounds[:maxlon].to_f - bounds[:minlon].to_f, bounds[:maxlat].to_f - bounds[:minlat].to_f].min).abs / 10.0
-    @directed = directed
   end
 
   # Export +self+ into Graphviz file given by +export_filename+.
@@ -39,7 +36,7 @@ class VisualGraph
 
     # append all vertices
     @visual_vertices.each { |k,v|
-    	graph_viz_output.add_nodes( v.id , :shape => 'point', :color => "red",
+    	graph_viz_output.add_nodes( v.id , :shape => 'point',
                                          :comment => "#{v.lat},#{v.lon}!", 
                                          :pos => "#{v.y},#{v.x}!")
 	  }
