@@ -202,7 +202,7 @@ class GraphLoader
 		end
 
 		biggest_component_vertices = groups.max_by{|group| group.length}
-		p biggest_component_vertices
+		#p biggest_component_vertices
 
 		hash_of_vertices = {}
 		hash_of_visual_vertices = {}
@@ -232,7 +232,6 @@ class GraphLoader
 		queue << node
 		visited << node
 		edge_to = {}
-		groups = []
 		printed = []
 
 		# Second step: Repeat until the queue is empty:

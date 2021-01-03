@@ -87,6 +87,32 @@ class OSMSimpleNav
 		@graph, @visual_graph = graph_loader.biggest_comp(directed)
 	end
 
+	#UC04
+	def print_all_vertices
+		@visual_graph.visual_vertices.each do |index, value|
+			puts "Bod s id:(#{index}) LAT: #{value.lat}, LON: #{value.lon}"
+		end
+	end
+
+	#UC05
+	def emphasize_special_vertices_id (id1, id2)
+		p @graph
+		@visual_graph.visual_vertices.each do |index, value|
+			if id1 == index
+				vertex1_lat = value.lat
+				vertex1_lon = value.lon
+			elsif id2 == index
+				vertex2_lat = value.lat
+				vertex2_lon = value.lon
+			end
+		end
+
+	end
+
+	def emphasize_special_vertices_geo
+
+	end
+
 	# Load graph from Graphviz file. This methods loads graph and create +Graph+ as well as +VisualGraph+ instances.
 	def import_graph
 		graph_loader = GraphLoader.new(@map_file, @highway_attributes)
@@ -191,7 +217,9 @@ class OSMSimpleNav
 	    	puts "OSM not supported!"
 	    	usage
 				#load_graph(true)
-				biggest_comp(true)
+				biggest_comp(false)
+				print_all_vertices
+				emphasize_special_vertices_id(0,0)
 				#exit 1
 	    elsif file_type(@map_file) == "dot" or file_type(@map_file) == "gv" then
 	    	import_graph
