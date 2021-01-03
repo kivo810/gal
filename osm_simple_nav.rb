@@ -10,8 +10,8 @@ class OSMSimpleNav
 	# Creates an instance of navigation. No input file is specified in this moment.
 	def initialize
 		# register
-		@load_cmds_list = ['--load']
-		@actions_list = ['--export']
+		@load_cmds_list = ['--load', '--load-undir', '--load-dir', '--load-dir-comp', '--load-undir-comp']
+		@actions_list = ['--export', '--show-nodes', '--center', '--midist-len', '--midist-time']
 
 		@usage_text = <<-END.gsub(/^ {6}/, '')
 	  	Usage:\truby osm_simple_nav.rb <load_command> <input.IN> <action_command> <output.OUT> 
@@ -144,106 +144,25 @@ class OSMSimpleNav
 
 	# Run navigation according to arguments from command line
 	def run
-		# prepare log and read command line arguments
-		# @highway_attributes = %w[residential motorway trunk primary secondary tertiary unclassified]
-		# doc = Nokogiri::XML(File.open("data/near_ucl.osm"))
-		# g = GraphViz.new(:G, :type => :graph)
-		# #p doc
-		# xx = 0
-		# # doc.root.xpath("node").each do |node|
-		# # 	g.add_nodes(node.attr("id"))
-		# # 	#puts node.attr("id")
-		# # end
-		# # doc.root.xpath("way").each do |way|
-		# # 	#p way
-		# # 	way.xpath("tag").each do |tag|
-		# # 		if tag.attr("k") == "highway" && tag.attr("v") == "residential"
-		# # 			p tag
-		# # 		end
-		# # 	end
-		# # 	i = 1
-		# # 	way.xpath("nd").each do |nn|
-		# # 		puts "node #{i}"
-		# # 		p nn.attr("ref")
-		# # 		i = i + 1
-		# # 	end
-		# # end
-		# # doc.root.xpath("way/nd").each do |nd|
-		# # 	#p nd.attr("ref")
-		# # end
-		# # TODO
-		# doc.root.xpath("way").each do |way|
-		# 	array = []
-		# 	way.xpath("tag").each do |tag|
-		# 		if tag.attr("k") == "highway" && tag.attr("v") == "residential"
-		# 		#if tag.attr("k") == "highway" && @highway_attributes.include?(tag.attr("v"))
-		# 			way.xpath("nd").each do |nd|
-		# 				array << nd.attr("ref")
-		# 			end
-		# 		end
-		# 	end
-		# 	array.combination(2) { |c|
-		# 		if g.get_node(c[0]) == nil
-		# 			a = g.add_nodes(c[0])
-		# 			#e = g.add_nodes(Vertex.new(c[0]))
-		# 		else
-		# 			a = g.get_node(c[0])
-		# 			#e = g.get_node(c[0])
-		# 		end
-		# 		if g.get_node(c[1]) == nil
-		# 			b = g.add_nodes(c[1])
-		# 			#d = g.add_nodes(Vertex.new(c[1]))
-		# 		else
-		# 			b = g.get_node(c[1])
-		# 			#d = g.get_node(c[1])
-		# 		end
-		# 		#r = Edge.new(a,b, 50, "none")
-		# 		# g.add_edge(a,b, :dir => "none")
-		# 		# g.add_edges(a, b, :dir => "none")
-		# 		#g.add_edge(a,b)
-		# 		if xx % 2 == 0
-		# 			g.add_edges(a,b, :color => "red")
-		# 			xx = xx + 1
-		# 		else
-		# 			g.add_edges(a,b)
-		# 			xx = xx + 1
-		# 		end
-		#
-		# 	}
-		# end
-		#
-		# t = GraphViz::Theory.new( g )
-		#
-		# pp = OsmHelper.load_graph_attributes(doc, @highway_attributes, false)
-		#
-		# #p g.node_count
-		# puts "node"
-		# #p g.get_node_at_index(1)
-		# #p g.get_node("1131753366")
-		# dist = Geocoder::Calculations.distance_between([50.0894509, 14.4588129], [50.0893950, 14.4589538], :units => :km)
-		# p dist
-		#
-		# p t.range
-		#
-		#
-		# #g.add_edges(g.get_node_at_index(0), g.get_node_at_index(1), :dir => "none")
-		# #p g.get_edge_at_index(9)
-
-		#g.output( :png => "graph.png")
-		
 		prepare_log
 	    process_args
 
 	    # load graph - action depends on last suffix
 	    @highway_attributes = ['residential', 'motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'unclassified']
 	    if file_type(@map_file) == "osm" or file_type(@map_file) == "xml" then
-	    	puts "OSM not supported!"
-	    	usage
-				#load_graph(true)
-				biggest_comp(false)
-				print_all_vertices
-				emphasize_special_vertices_id(21311325,29382252)
-				#exit 1
+				case @load_cmd
+				when '--load-undir'
+					load_graph(false)
+				when '--load-dir'
+					load_graph(true)
+				when '--load-undir-comp'
+					biggest_comp(false)
+				when '--load-dir-comp'
+					biggest_comp(true)
+				else
+					usage
+					exit 1
+				end
 	    elsif file_type(@map_file) == "dot" or file_type(@map_file) == "gv" then
 	    	import_graph
 	    else
@@ -254,13 +173,16 @@ class OSMSimpleNav
 		# perform the operation
 	    case @operation
 			when '--export'
-				puts "im here"
 				@visual_graph.export_graphviz(@out_file)
+				return
+			when '--show-nodes'
+				print_all_vertices
 				return
 			else
 				usage
 				exit 1
-	    end	
+			end
+		@visual_graph.export_graphviz(@out_file)
 	end	
 end
 

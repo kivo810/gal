@@ -88,7 +88,7 @@ class GraphLoader
 
 		graph = Graph.new(attributes_for_graph[:hash_of_vertices], attributes_for_graph[:list_of_edges])
 		visual_graph = VisualGraph.new(graph, attributes_for_graph[:hash_of_visual_vertices],
-																	 attributes_for_graph[:list_of_visual_edges], attributes_for_graph[:bounds], directed)
+																	 attributes_for_graph[:list_of_visual_edges], attributes_for_graph[:bounds])
 
 		return graph, visual_graph
 	end
@@ -214,7 +214,7 @@ class GraphLoader
 		list_of_visual_edge = attr_for_graph[:list_of_visual_edges].filter {|edge| hash_of_vertices[edge.v1.id]}
 
 		graph = Graph.new(hash_of_vertices, list_of_edges)
-		visual_graph = VisualGraph.new(graph, hash_of_visual_vertices, list_of_visual_edge, attr_for_graph[:bounds], directed)
+		visual_graph = VisualGraph.new(graph, hash_of_visual_vertices, list_of_visual_edge, attr_for_graph[:bounds])
 
 		return graph, visual_graph
 	end
